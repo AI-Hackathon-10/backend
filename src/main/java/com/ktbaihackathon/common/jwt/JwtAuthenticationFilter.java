@@ -28,7 +28,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     public final String[] WHITE_LIST = {
-            "/user",
+            "/api/user",
+            "/api/auth/login",
     };
 
     @Override
@@ -65,6 +66,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 sendErrorResponse(response, ResultCode.INVALID_TOKEN);
                 return;
             }
+
+            Long userId = jwtProvider.getUserId(token);
+            request.setAttribute("userId", userId);
 
             filterChain.doFilter(request, response);
 

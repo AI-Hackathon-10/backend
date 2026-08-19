@@ -54,6 +54,14 @@ public class JwtProvider {
         );
     }
 
+    public String createRefreshToken(Long userId) {
+        return createToken(
+                userId,
+                Map.of("type", "refresh"),
+                jwtProperties.getRefreshTokenExpiredSeconds()
+        );
+    }
+
     public Jws<Claims> parse(String token) {
         return Jwts.parser()
                 .verifyWith((SecretKey) key)
@@ -67,6 +75,15 @@ public class JwtProvider {
 
     public Long getUserId(String token) {
         return Long.valueOf(parse(token).getPayload().getSubject());
+    }
+
+    public LocalDateTime getExpiration(String token) {
+        return parse(token)
+                .getPayload()
+                .getExpiration()
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
     }
 
 }
