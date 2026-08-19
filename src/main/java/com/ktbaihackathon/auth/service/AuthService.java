@@ -3,6 +3,7 @@ package com.ktbaihackathon.auth.service;
 import com.ktbaihackathon.auth.dto.LoginRequest;
 import com.ktbaihackathon.auth.dto.LoginResponse;
 import com.ktbaihackathon.auth.dto.RefreshRequest;
+import com.ktbaihackathon.auth.dto.UserInfoResponse;
 import com.ktbaihackathon.auth.entity.RefreshToken;
 import com.ktbaihackathon.auth.repository.RefreshTokenRepository;
 import com.ktbaihackathon.common.exception.CustomException;
@@ -87,5 +88,13 @@ public class AuthService {
     @Transactional
     public void logout(Long userId) {
         refreshTokenRepository.deleteByUserId(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public UserInfoResponse getMe(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ResultCode.INVALID_TOKEN));
+
+        return UserInfoResponse.from(user);
     }
 }
