@@ -10,14 +10,16 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.util.PatternMatchUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
 
 @Component
@@ -27,15 +29,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtProvider jwtProvider;
     private final ObjectMapper objectMapper;
 
-    public final String[] WHITE_LIST = {
-            "/api/user",
-            "/api/auth",
-            "/api/auth/refresh",
-    };
+    /**
+     * 경로가 같아도 HTTP 메서드에 따라 인증 요구 여부가 갈리는 엔드포인트가 있어(예: "/api/auth"의
+     * POST=로그인/PUT=재발급은 인증 불필요, DELETE=로그아웃은 인증 필요) 경로만으로는 화이트리스트를 판단할 수 없다.
+     */
+    private static final Map<String, Set<String>> WHITE_LIST = Map.of(
+            "/api/user", Set.of(HttpMethod.POST.name()),
+            "/api/auth", Set.of(HttpMethod.POST.name(), HttpMethod.PUT.name())
+    );
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        return PatternMatchUtils.simpleMatch(WHITE_LIST, request.getRequestURI());
+        Set<String> allowedMethods = WHITE_LIST.get(request.getRequestURI());
+        return allowedMethods != null && allowedMethods.contains(request.getMethod());
     }
 
     @Override
