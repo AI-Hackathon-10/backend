@@ -8,7 +8,9 @@ public enum ResultCode {
     INTERNAL_SERVER_ERROR("서버 내부 오류가 발생했습니다."),
     USER_CREATE_SUCCESS("회원 가입에 성공했습니다."),
     INVALID_REQUEST("잘못된 요청입니다."),
-    DUPLICATE_LOGIN_ID("이미 사용 중인 아이디입니다.");
+    DUPLICATE_LOGIN_ID("이미 사용 중인 아이디입니다."),
+    UNAUTHORIZED("인증 정보가 없거나 올바르지 않습니다."),
+    INVALID_TOKEN("유효하지 않거나 만료된 토큰입니다.");
 
     private final String message;
 

@@ -1,6 +1,8 @@
 package com.ktbaihackathon.common.jwt;
 
 
+import com.ktbaihackathon.common.response.ApiResponse;
+import com.ktbaihackathon.common.response.ResultCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.PatternMatchUtils;
@@ -51,33 +54,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            sendErrorResponse(response, "AUTHORIZATION_HEADER_MISSING_OR_INVALID");
+            sendErrorResponse(response, ResultCode.UNAUTHORIZED);
             return;
         }
 
         String token = authHeader.substring(7);
 
         try {
-            jwtProvider.parse(token);
-
             if (!jwtProvider.isAccessToken(token)) {
-                sendErrorResponse(response, "INVALID_TOKEN");
+                sendErrorResponse(response, ResultCode.INVALID_TOKEN);
                 return;
             }
 
             filterChain.doFilter(request, response);
 
         } catch (Exception exception) {
-            sendErrorResponse(response, "INVALID_TOKEN");
+            sendErrorResponse(response, ResultCode.INVALID_TOKEN);
         }
     }
 
-    private void sendErrorResponse(HttpServletResponse response, String errorMessage) throws IOException {
+    private void sendErrorResponse(HttpServletResponse response, ResultCode resultCode) throws IOException {
 
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");
 
-        String responseBody = objectMapper.writeValueAsString(errorMessage);
-        response.getWriter().write(responseBody);
+        ApiResponse<Void> body = ApiResponse.fail(resultCode.name(), resultCode.getMessage());
+        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }
