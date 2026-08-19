@@ -11,3 +11,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create
+
+#jwt:
+#  access-token-expired-seconds: ${JWT_ACCESS_TOKEN_EXPIRED_SECONDS}
+#  refresh-token-expired-seconds: ${JWT_REFRESH_TOKEN_EXPIRED_SECONDS}
+#  secret: ${JWT_SECRET}
