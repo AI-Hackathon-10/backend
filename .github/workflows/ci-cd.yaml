@@ -1,0 +1,90 @@
+name: Java Spring Boot CI/CD with Docker & SSH
+
+on:
+  push:
+    branches: [ feat/#20-ci-cd ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/hackathon:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executing remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            mkdir -p ~/project
+            cd ~/project
+            
+            # Docker Hub 계정명을 환경변수로 주입
+            export DOCKERHUB_USERNAME="${{ secrets.DOCKERHUB_USERNAME }}"
+            
+            # 1. deploy.sh가 없다면 새로 생성 (인자를 처리하는 스크립트)
+            if [ ! -f ./deploy.sh ]; then
+              echo "deploy.sh를 새로 생성합니다."
+              cat << 'EOF' > ./deploy.sh
+              #!/bin/bash
+            
+              # 첫 번째 인자($1)로 들어온 GitHub SHA 값을 변수에 할당
+              TAG=$1
+            
+              # 인자 값이 비어있는지 검증
+              if [ -z "$TAG" ]; then
+                echo "오류: 배포할 이미지의 TAG(GitHub SHA)가 지정되지 않았습니다."
+                exit 1
+              fi
+            
+              IMAGE_NAME="${DOCKERHUB_USERNAME}/myapp:${TAG}"
+              echo "========================================="
+              echo "배포 시작 이미지: $IMAGE_NAME"
+              echo "========================================="
+            
+              echo "1. 기존 컨테이너 중지 및 삭제"
+              docker stop myapp-container 2>/dev/null || true
+              docker rm myapp-container 2>/dev/null || true
+            
+              echo "2. 명시된 버전의 이미지 다운로드 (Pull)"
+              docker pull $IMAGE_NAME
+            
+              echo "3. 새 컨테이너 실행"
+              docker run -d -p 8080:8080 --name myapp-container --restart always $IMAGE_NAME
+            
+              echo "4. 사용하지 않는 이전 이미지 정리"
+              docker image prune -af
+            
+              echo "배포 완료!"
+            EOF
+              chmod +x ./deploy.sh
+            fi
+            
+            # 2. 배포 스크립트 실행 시 GitHub SHA를 인자($1)로 명시적으로 넘겨줌
+            ./deploy.sh "${{ github.sha }}"
