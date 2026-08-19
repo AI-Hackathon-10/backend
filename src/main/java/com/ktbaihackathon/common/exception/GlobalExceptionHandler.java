@@ -4,6 +4,7 @@ import com.ktbaihackathon.common.response.ApiResponse;
 import com.ktbaihackathon.common.response.ResultCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -15,6 +16,18 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.fail(e.getResultCode().name(), e.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidArgument(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
+                .orElse(ResultCode.INVALID_REQUEST.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.fail(ResultCode.INVALID_REQUEST.name(), message));
     }
 
     @ExceptionHandler(Exception.class)
