@@ -16,7 +16,8 @@ public enum ResultCode {
     LOGIN_FAILED("아이디 또는 비밀번호가 일치하지 않습니다."),
     TOKEN_REISSUE_SUCCESS("토큰이 재발급되었습니다."),
     LOGOUT_SUCCESS("로그아웃되었습니다."),
-    AUTH_CHECK_SUCCESS("인증 확인에 성공했습니다.");
+    AUTH_CHECK_SUCCESS("인증 확인에 성공했습니다."),
+    SYMPTOM_RECORD_CREATE_SUCCESS("증상 기록이 저장되었습니다.");
 
     private final String message;
 
