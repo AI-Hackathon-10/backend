@@ -2,8 +2,27 @@ spring:
   application:
     name: ktb-ai-hackathon
 
+  servlet:
+    multipart:
+      max-file-size: ${SERVLET_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${SERVLET_MULTIPART_MAX_REQUEST_SIZE:10MB}
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: ${DB_DRIVER}
+
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+app:
+  s3:
+    region: ${AWS_REGION}
+    bucket: ${AWS_S3_BUCKET}
+    report-prefix: ${AWS_S3_REPORT_PREFIX:reports}
+    presigned-url-expiration-seconds: ${AWS_S3_PRESIGNED_URL_EXPIRATION_SECONDS:600}
+    max-report-size-bytes: ${AWS_S3_MAX_REPORT_SIZE_BYTES:10485760}
