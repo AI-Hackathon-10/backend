@@ -12,7 +12,9 @@ public enum ResultCode {
     UNAUTHORIZED("인증 정보가 없거나 올바르지 않습니다."),
     INVALID_TOKEN("유효하지 않거나 만료된 토큰입니다."),
     LOGIN_SUCCESS("로그인에 성공했습니다."),
-    LOGIN_FAILED("아이디 또는 비밀번호가 일치하지 않습니다.");
+    LOGIN_FAILED("아이디 또는 비밀번호가 일치하지 않습니다."),
+    TOKEN_REISSUE_SUCCESS("토큰이 재발급되었습니다."),
+    LOGOUT_SUCCESS("로그아웃되었습니다.");
 
     private final String message;
 

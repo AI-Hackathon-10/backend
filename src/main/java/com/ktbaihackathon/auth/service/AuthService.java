@@ -2,6 +2,7 @@ package com.ktbaihackathon.auth.service;
 
 import com.ktbaihackathon.auth.dto.LoginRequest;
 import com.ktbaihackathon.auth.dto.LoginResponse;
+import com.ktbaihackathon.auth.dto.RefreshRequest;
 import com.ktbaihackathon.auth.entity.RefreshToken;
 import com.ktbaihackathon.auth.repository.RefreshTokenRepository;
 import com.ktbaihackathon.common.exception.CustomException;
@@ -45,5 +46,46 @@ public class AuthService {
                 );
 
         return LoginResponse.of(accessToken, refreshToken);
+    }
+
+    @Transactional
+    public LoginResponse reissue(RefreshRequest request) {
+        String refreshToken = request.refreshToken();
+
+        Long userId;
+        try {
+            if (!jwtProvider.isRefreshToken(refreshToken)) {
+                throw new CustomException(ResultCode.INVALID_TOKEN);
+            }
+            userId = jwtProvider.getUserId(refreshToken);
+        } catch (CustomException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new CustomException(ResultCode.INVALID_TOKEN);
+        }
+
+        RefreshToken savedRefreshToken = refreshTokenRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ResultCode.INVALID_TOKEN));
+
+        if (!savedRefreshToken.getToken().equals(refreshToken)) {
+            refreshTokenRepository.delete(savedRefreshToken);
+            throw new CustomException(ResultCode.INVALID_TOKEN);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ResultCode.INVALID_TOKEN));
+
+        String newAccessToken = jwtProvider.createAccessToken(user.getUserId(), user.getName());
+        String newRefreshToken = jwtProvider.createRefreshToken(user.getUserId());
+        LocalDateTime expiresAt = jwtProvider.getExpiration(newRefreshToken);
+
+        savedRefreshToken.update(newRefreshToken, expiresAt);
+
+        return LoginResponse.of(newAccessToken, newRefreshToken);
+    }
+
+    @Transactional
+    public void logout(Long userId) {
+        refreshTokenRepository.deleteByUserId(userId);
     }
 }

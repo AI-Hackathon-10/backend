@@ -29,7 +29,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     public final String[] WHITE_LIST = {
             "/api/user",
-            "/api/auth/login",
+            "/api/auth",
+            "/api/auth/refresh",
     };
 
     @Override
