@@ -1,7 +1,5 @@
 package com.ktbaihackathon.user.service;
 
-import com.ktbaihackathon.common.exception.CustomException;
-import com.ktbaihackathon.common.response.ResultCode;
 import com.ktbaihackathon.common.security.PasswordEncoder;
 import com.ktbaihackathon.user.dto.SignUpRequest;
 import com.ktbaihackathon.user.entity.User;
@@ -19,10 +17,6 @@ public class UserService {
 
     @Transactional
     public User signUp(SignUpRequest request) {
-        if (userRepository.existsByLoginId(request.loginId())) {
-            throw new CustomException(ResultCode.DUPLICATE_LOGIN_ID);
-        }
-
         String encodedPassword = passwordEncoder.encode(request.password());
 
         User user = User.createUser(
