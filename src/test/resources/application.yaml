@@ -20,3 +20,6 @@ aws:
   credentials:
     access-key: test-access-key
     secret-key: test-secret-key
+
+fastapi:
+  base-url: http://localhost:8000
