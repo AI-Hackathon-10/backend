@@ -81,6 +81,10 @@ public class MedicationEntity {
     }
 
     public void markAsTaken() {
+        if (isTaken) {
+            return;
+        }
+
         this.isTaken = true;
         this.takenAt = LocalDateTime.now();
     }
