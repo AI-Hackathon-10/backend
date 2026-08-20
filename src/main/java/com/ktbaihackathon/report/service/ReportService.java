@@ -59,4 +59,12 @@ public class ReportService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public ReportResponse findOne(Long userId, Long reportId) {
+        Report report = reportRepository.findByReportIdAndUser_UserId(reportId, userId)
+                .orElseThrow(() -> new CustomException(ResultCode.INVALID_REQUEST));
+
+        return ReportResponse.from(report);
+    }
+
 }
