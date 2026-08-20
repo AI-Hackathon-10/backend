@@ -2,15 +2,30 @@ package com.ktbaihackathon.medication.dto;
 
 public record MedicationIdentifyResponse(
         boolean ok,
-        String confidence,
-        double score,
         String itemSeq,
         String itemName,
         String imageUrl,
+        Identification identification,
+        Recommendation recommendation,
         Features features,
         Official official,
         String document
 ) {
+
+    public record Identification(
+            String confidence,
+            double score
+    ) {
+    }
+
+    public record Recommendation(
+            String status,
+            double score,
+            String confidence,
+            String reason,
+            String caution
+    ) {
+    }
 
     public record Features(
             String frontImprint,
