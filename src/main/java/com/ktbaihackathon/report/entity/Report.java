@@ -1,6 +1,7 @@
 package com.ktbaihackathon.report.entity;
 
 import com.ktbaihackathon.common.entity.BaseTimeEntity;
+import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.symptom.entity.SymptomRecord;
 import com.ktbaihackathon.user.entity.User;
 import jakarta.persistence.Column;
@@ -13,6 +14,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -37,6 +39,14 @@ public class Report extends BaseTimeEntity {
     @JoinColumn(name = "symptom_record_id", nullable = false)
     private SymptomRecord symptomRecord;
 
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(
+            name = "drug_recognition_id",
+            nullable = false,
+            unique = true
+    )
+    private MedicationEntity medication;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String summary;
 
@@ -54,10 +64,12 @@ public class Report extends BaseTimeEntity {
     private Report(
             User user,
             SymptomRecord symptomRecord,
+            MedicationEntity medication,
             String summary
     ) {
         this.user = user;
         this.symptomRecord = symptomRecord;
+        this.medication = medication;
         this.summary = summary;
         this.snapshotStatus = ReportSnapshotStatus.PENDING;
     }
@@ -65,9 +77,10 @@ public class Report extends BaseTimeEntity {
     public static Report create(
             User user,
             SymptomRecord symptomRecord,
+            MedicationEntity medication,
             String summary
     ) {
-        return new Report(user, symptomRecord, summary);
+        return new Report(user, symptomRecord, medication, summary);
     }
 
     public void prepareSnapshotUpload(
