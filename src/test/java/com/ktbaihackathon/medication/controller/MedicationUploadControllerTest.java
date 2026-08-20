@@ -78,4 +78,45 @@ class MedicationUploadControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false));
     }
+
+    @Test
+    void acceptsUpToTenSymptoms() throws Exception {
+        when(medicationIdentifyService.identify(eq(1L), any())).thenReturn(List.of());
+
+        mockMvc.perform(post("/api/medications/identify")
+                        .requestAttr("userId", 1L)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "requestId": "request-1",
+                                  "symptomTypes": [
+                                    "HEADACHE", "FEVER", "COUGH", "SORE_THROAT", "RUNNY_NOSE",
+                                    "NASAL_CONGESTION", "ABDOMINAL_PAIN", "INDIGESTION", "DIARRHEA", "CONSTIPATION"
+                                  ],
+                                  "startedAt": "2026-08-20T14:00:00+09:00"
+                                }
+                                """))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void rejectsMoreThanTenSymptoms() throws Exception {
+        mockMvc.perform(post("/api/medications/identify")
+                        .requestAttr("userId", 1L)
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "requestId": "request-1",
+                                  "symptomTypes": [
+                                    "HEADACHE", "FEVER", "COUGH", "SORE_THROAT", "RUNNY_NOSE",
+                                    "NASAL_CONGESTION", "ABDOMINAL_PAIN", "INDIGESTION", "DIARRHEA", "CONSTIPATION",
+                                    "HEARTBURN"
+                                  ],
+                                  "startedAt": "2026-08-20T14:00:00+09:00"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("symptomTypes: 증상은 최대 10개까지 선택할 수 있습니다."));
+    }
 }

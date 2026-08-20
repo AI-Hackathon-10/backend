@@ -8,6 +8,7 @@ import com.ktbaihackathon.medication.dto.IdentifyRequest;
 import com.ktbaihackathon.medication.dto.MedicationIdentifyResponse;
 import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.medication.repository.MedicationRepository;
+import com.ktbaihackathon.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,19 +45,14 @@ public class MedicationIdentifyService {
 
         String frontKey = medication.getFrontImageObjectKey();
         String backKey = medication.getBackImageObjectKey();
-
         System.out.println("====== [디버그] 3. S3에서 이미지 다운로드 시도 =====");
         String frontBase64 = s3ImageDownloadService.downloadAsBase64(frontKey);
         String backBase64 = s3ImageDownloadService.downloadAsBase64(backKey);
 
         System.out.println("====== [디버그] 4. S3 다운로드 완료, FastAPI 호출 시작 ====== ");
 
-        // 💡 수동 String.format을 지우고, 스네이크 케이스 필드명을 가진 DTO 레코드를 깔끔하게 생성
-        FastApiIdentifyRequest apiRequest = new FastApiIdentifyRequest(
-                frontBase64,
-                backBase64,
-                "image/jpeg",
-                backBase64 != null ? "image/jpeg" : null
+        FastApiIdentifyRequest apiRequest = createFastApiRequest(
+                medication, request, frontBase64, backBase64
         );
 
         FastApiIdentifyResponse response;
@@ -87,6 +83,40 @@ public class MedicationIdentifyService {
         }
 
         return toServiceResponse(response);
+    }
+
+    FastApiIdentifyRequest createFastApiRequest(
+            MedicationEntity medication,
+            IdentifyRequest request,
+            String frontBase64,
+            String backBase64
+    ) {
+        User user = medication.getUser();
+        FastApiIdentifyRequest.User apiUser = new FastApiIdentifyRequest.User(
+                user.getUserId(),
+                user.getName(),
+                user.getGender(),
+                user.getBirthDate()
+        );
+        List<String> symptoms = request.symptomTypes().stream()
+                .map(Enum::name)
+                .toList();
+        FastApiIdentifyRequest.Item item = new FastApiIdentifyRequest.Item(
+                String.valueOf(medication.getMedicationRecognitionId()),
+                toImageDataUrl(frontBase64),
+                toImageDataUrl(backBase64)
+        );
+
+        return new FastApiIdentifyRequest(
+                apiUser,
+                symptoms,
+                request.startedAt(),
+                List.of(item)
+        );
+    }
+
+    private String toImageDataUrl(String base64) {
+        return base64 == null ? null : "data:image/jpeg;base64," + base64;
     }
 
     private List<MedicationIdentifyResponse> toServiceResponse(FastApiIdentifyResponse response) {

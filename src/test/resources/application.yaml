@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ktb-ai-hackathon;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+jwt:
+  secret: test-secret-key-for-jwt-signing-that-is-long-enough
+  access-token-expired-seconds: 3600
+  refresh-token-expired-seconds: 1209600
+
+aws:
+  region: ap-northeast-2
+  s3:
+    bucket: test-bucket
+  credentials:
+    access-key: test-access-key
+    secret-key: test-secret-key
