@@ -1,3 +1,5 @@
+package com.ktbaihackathon.medication.dto;
+
 public record MedicationIdentifyResponse(
         boolean ok,
         String itemSeq,
