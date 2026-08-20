@@ -65,10 +65,36 @@ class SymptomRecordControllerTest {
     }
 
     @Test
-    void rejectsMoreThanTwoSymptoms() throws Exception {
+    void acceptsUpToTenSymptoms() throws Exception {
+        SymptomRecord symptomRecord = mockSymptomRecord();
+        when(symptomRecordService.create(eq(1L), any())).thenReturn(symptomRecord);
+
         String requestBody = """
                 {
-                  "symptomTypes": ["HEADACHE", "FEVER", "COUGH"],
+                  "symptomTypes": [
+                    "HEADACHE", "FEVER", "COUGH", "SORE_THROAT", "RUNNY_NOSE",
+                    "NASAL_CONGESTION", "ABDOMINAL_PAIN", "INDIGESTION", "DIARRHEA", "CONSTIPATION"
+                  ],
+                  "startedAt": "2026-08-20T01:00:00Z"
+                }
+                """;
+
+        mockMvc.perform(post("/api/symptoms/records")
+                        .requestAttr("userId", 1L)
+                        .contentType("application/json")
+                        .content(requestBody))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void rejectsMoreThanTenSymptoms() throws Exception {
+        String requestBody = """
+                {
+                  "symptomTypes": [
+                    "HEADACHE", "FEVER", "COUGH", "SORE_THROAT", "RUNNY_NOSE",
+                    "NASAL_CONGESTION", "ABDOMINAL_PAIN", "INDIGESTION", "DIARRHEA", "CONSTIPATION",
+                    "HEARTBURN"
+                  ],
                   "startedAt": "2026-08-20T01:00:00Z"
                 }
                 """;

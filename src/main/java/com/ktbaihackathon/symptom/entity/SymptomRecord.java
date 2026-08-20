@@ -28,6 +28,8 @@ import java.util.List;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class SymptomRecord extends BaseTimeEntity {
 
+    public static final int MAX_SYMPTOM_COUNT = 10;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "symptom_record_id")
@@ -71,8 +73,8 @@ public class SymptomRecord extends BaseTimeEntity {
     }
 
     public void addSymptom(SymptomType symptomType) {
-        if (symptomMaps.size() >= 2) {
-            throw new IllegalArgumentException("증상은 최대 2개까지 선택할 수 있습니다.");
+        if (symptomMaps.size() >= MAX_SYMPTOM_COUNT) {
+            throw new IllegalArgumentException("증상은 최대 10개까지 선택할 수 있습니다.");
         }
 
         boolean alreadyExists = symptomMaps.stream()
