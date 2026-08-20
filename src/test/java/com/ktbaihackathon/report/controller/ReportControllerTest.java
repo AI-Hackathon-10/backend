@@ -5,7 +5,10 @@ import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.report.entity.Report;
 import com.ktbaihackathon.report.entity.ReportSnapshotStatus;
 import com.ktbaihackathon.report.dto.ReportResponse;
+import com.ktbaihackathon.report.dto.ReportSnapshotPresignedUrlResponse;
+import com.ktbaihackathon.report.dto.ReportSnapshotUrlResponse;
 import com.ktbaihackathon.report.service.ReportService;
+import com.ktbaihackathon.report.service.ReportSnapshotService;
 import com.ktbaihackathon.symptom.entity.SymptomRecord;
 import com.ktbaihackathon.symptom.entity.SymptomType;
 import com.ktbaihackathon.user.entity.User;
@@ -31,12 +34,14 @@ class ReportControllerTest {
 
     private MockMvc mockMvc;
     private ReportService reportService;
+    private ReportSnapshotService reportSnapshotService;
 
     @BeforeEach
     void setUp() {
         reportService = mock(ReportService.class);
+        reportSnapshotService = mock(ReportSnapshotService.class);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new ReportController(reportService))
+                .standaloneSetup(new ReportController(reportService, reportSnapshotService))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
@@ -113,6 +118,61 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.result.symptomRecordId").value(5));
 
         verify(reportService).findOne(1L, 20L);
+    }
+
+    @Test
+    void issuesReportSnapshotUploadUrl() throws Exception {
+        when(reportSnapshotService.issueUploadUrl(eq(1L), eq(20L)))
+                .thenReturn(new ReportSnapshotPresignedUrlResponse(
+                        20L,
+                        "reports/1/20/snapshot.png",
+                        "https://s3.example/upload",
+                        300L
+                ));
+
+        mockMvc.perform(post("/api/reports/20/snapshot/presigned-url")
+                        .requestAttr("userId", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.result.reportId").value(20))
+                .andExpect(jsonPath("$.result.objectKey")
+                        .value("reports/1/20/snapshot.png"))
+                .andExpect(jsonPath("$.result.uploadUrl")
+                        .value("https://s3.example/upload"))
+                .andExpect(jsonPath("$.result.expiresInSeconds").value(300));
+
+        verify(reportSnapshotService).issueUploadUrl(1L, 20L);
+    }
+
+    @Test
+    void completesReportSnapshotUpload() throws Exception {
+        mockMvc.perform(post("/api/reports/20/snapshot/complete")
+                        .requestAttr("userId", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(reportSnapshotService).completeUpload(1L, 20L);
+    }
+
+    @Test
+    void getsReportSnapshotUrl() throws Exception {
+        when(reportSnapshotService.getSnapshotUrl(eq(1L), eq(20L)))
+                .thenReturn(new ReportSnapshotUrlResponse(
+                        20L,
+                        "https://s3.example/download",
+                        300L
+                ));
+
+        mockMvc.perform(get("/api/reports/20/snapshot-url")
+                        .requestAttr("userId", 1L))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.result.reportId").value(20))
+                .andExpect(jsonPath("$.result.snapshotUrl")
+                        .value("https://s3.example/download"))
+                .andExpect(jsonPath("$.result.expiresInSeconds").value(300));
+
+        verify(reportSnapshotService).getSnapshotUrl(1L, 20L);
     }
 
     private ReportResponse mockReportResponse() {

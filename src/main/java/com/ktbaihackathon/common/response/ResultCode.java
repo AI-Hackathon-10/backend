@@ -22,6 +22,10 @@ public enum ResultCode {
     REPORT_CREATE_SUCCESS("리포트가 저장되었습니다."),
     REPORT_QUERY_SUCCESS("리포트를 조회했습니다."),
     REPORT_MEDICATION_NOT_TAKEN("복용 기록을 먼저 확정해야 리포트를 생성할 수 있습니다."),
+    REPORT_SNAPSHOT_PRESIGNED_URL_SUCCESS("리포트 스냅샷 업로드 URL이 발급되었습니다."),
+    REPORT_SNAPSHOT_COMPLETE_SUCCESS("리포트 스냅샷 업로드가 완료되었습니다."),
+    REPORT_SNAPSHOT_URL_SUCCESS("리포트 스냅샷 조회 URL이 발급되었습니다."),
+    REPORT_SNAPSHOT_NOT_AVAILABLE("리포트 스냅샷을 아직 사용할 수 없습니다."),
     USER_NOT_FOUND("존재하지 않는 유저입니다.");
 
     private final String message;
