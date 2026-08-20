@@ -1,7 +1,8 @@
 package com.ktbaihackathon.medication.dto;
 
+/** FastAPI 응답을 프론트엔드 규격으로 정리한 단일 알약 판별 결과. */
 public record MedicationIdentifyResponse(
-        boolean ok,
+        Boolean ok,
         String itemSeq,
         String itemName,
         String imageUrl,
@@ -11,30 +12,26 @@ public record MedicationIdentifyResponse(
         Official official,
         String document
 ) {
-
     public record Identification(
             String confidence,
-            double score
-    ) {
-    }
+            Double score
+    ) {}
 
     public record Recommendation(
             String status,
-            double score,
+            Double score,
             String confidence,
             String reason,
             String caution
-    ) {
-    }
+    ) {}
 
     public record Features(
             String frontImprint,
             String backImprint,
             String shape,
             String color,
-            boolean scoreLine
-    ) {
-    }
+            Boolean scoreLine
+    ) {}
 
     public record Official(
             String itemSeq,
@@ -47,6 +44,5 @@ public record MedicationIdentifyResponse(
             String sideEffect,
             String storage,
             String imageUrl
-    ) {
-    }
+    ) {}
 }

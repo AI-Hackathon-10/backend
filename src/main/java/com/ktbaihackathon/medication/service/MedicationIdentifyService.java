@@ -4,13 +4,22 @@ import com.ktbaihackathon.common.exception.CustomException;
 import com.ktbaihackathon.common.response.ResultCode;
 import com.ktbaihackathon.medication.dto.FastApiIdentifyRequest;
 import com.ktbaihackathon.medication.dto.FastApiIdentifyResponse;
+import com.ktbaihackathon.medication.dto.IdentifyRequest;
+import com.ktbaihackathon.medication.dto.MedicationIdentifyResponse;
 import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.medication.repository.MedicationRepository;
+import com.ktbaihackathon.user.entity.User;
+import com.ktbaihackathon.user.repository.UserRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
-import org.springframework.http.MediaType;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,40 +27,62 @@ public class MedicationIdentifyService {
 
     private final S3ImageDownloadService s3ImageDownloadService;
     private final MedicationRepository medicationRepository;
+    private final UserRepository userRepository;
 
-    // 💡 [로컬 개발 환경 설정]: 내 PC 도커 포트로 연결된 FastAPI(localhost:8000) 및 타임아웃 60초 설정
-    private final RestClient fastApiClient = RestClient.builder()
-            .baseUrl("http://localhost:8000")
-            .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory() {{
-                setConnectTimeout(5000);
-                setReadTimeout(60000); // AI 연산 대기 시간 60초 보장
-            }})
-            .build();
+    @Value("${fastapi.base-url}")
+    private String fastApiBaseUrl;
+
+    private RestClient fastApiClient;
+
+    @PostConstruct
+    private void initFastApiClient() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5000);
+        requestFactory.setReadTimeout(60000);
+
+        this.fastApiClient = RestClient.builder()
+                .baseUrl(fastApiBaseUrl)
+                .requestFactory(requestFactory)
+                .build();
+    }
 
     @Transactional
-    public FastApiIdentifyResponse identify(Long userId, String requestId) {
-        System.out.println("====== [디버그] 1. 서비스 진입 성공 ======");
+    public List<MedicationIdentifyResponse> identify(Long userId, IdentifyRequest identifyRequest) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ResultCode.USER_NOT_FOUND));
 
-        MedicationEntity medication = medicationRepository.findByRequestId(requestId)
+        MedicationEntity medication = medicationRepository
+                .findByRequestIdAndUserUserId(identifyRequest.requestId(), userId)
                 .orElseThrow(() -> new CustomException(ResultCode.MEDICATION_NOT_FOUND));
-
-        System.out.println("====== [디버그] 2. DB에서 데이터 조회 성공 ======");
 
         String frontKey = medication.getFrontImageObjectKey();
         String backKey = medication.getBackImageObjectKey();
 
-        System.out.println("====== [디버그] 3. S3에서 이미지 다운로드 시도 =====");
         String frontBase64 = s3ImageDownloadService.downloadAsBase64(frontKey);
         String backBase64 = s3ImageDownloadService.downloadAsBase64(backKey);
 
-        System.out.println("====== [디버그] 4. S3 다운로드 완료, FastAPI 호출 시작 ====== ");
+        FastApiIdentifyRequest.User apiUser = new FastApiIdentifyRequest.User(
+                user.getUserId(),
+                user.getName(),
+                user.getGender(),
+                user.getBirthDate()
+        );
 
-        // 💡 수동 String.format을 지우고, 스네이크 케이스 필드명을 가진 DTO 레코드를 깔끔하게 생성
-        FastApiIdentifyRequest apiRequest = new FastApiIdentifyRequest(
+        FastApiIdentifyRequest.Item item = new FastApiIdentifyRequest.Item(
+                identifyRequest.requestId(),
                 frontBase64,
-                backBase64,
-                "image/jpeg",
-                backBase64 != null ? "image/jpeg" : null
+                backBase64
+        );
+
+        List<String> symptomNames = identifyRequest.symptomTypes().stream()
+                .map(Enum::name)
+                .toList();
+
+        FastApiIdentifyRequest apiRequest = new FastApiIdentifyRequest(
+                apiUser,
+                symptomNames,
+                identifyRequest.startedAt(),
+                List.of(item)
         );
 
         FastApiIdentifyResponse response;
@@ -59,36 +90,65 @@ public class MedicationIdentifyService {
             response = fastApiClient.post()
                     .uri("/identify")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(apiRequest) // 👈 DTO 객체 바디 전달
+                    .body(apiRequest)
                     .retrieve()
                     .body(FastApiIdentifyResponse.class);
 
-            System.out.println("🎉 [디버그] 5. FastAPI 호출 성공! 200 OK 응답 받음");
-
-            if (response != null) {
-                String aiDrugName = null;
-
-                // 1순위 추출: matchResult -> candidates 리스트의 첫 번째 아이템의 itemName
-                if (response.matchResult() != null &&
-                        response.matchResult().candidates() != null &&
-                        !response.matchResult().candidates().isEmpty()) {
-
-                    aiDrugName = response.matchResult().candidates().get(0).itemName();
-                }
-                // 2순위 추출 (Fallback): matchResult가 정상적이지 않을 때 detail 객체의 itemName 활용
-                else if (response.detail() != null) {
-                    aiDrugName = response.detail().itemName();
-                }
-
-                // 엔티티의 알약 이름 업데이트 및 상태값을 SUCCESS로 변경
+            if (response != null && response.result() != null && !response.result().isEmpty()) {
+                String aiDrugName = response.result().get(0).itemName();
                 medication.updateIdentificationResult(aiDrugName, "SUCCESS");
+            } else {
+                medication.updateIdentificationResult(null, "FAILED");
             }
         } catch (Exception e) {
-            System.out.println("❌ [디버그] FastAPI 호출 실패 -> 상태값 FAILED 변경. 에러 원인: " + e.getMessage());
             medication.updateIdentificationResult(null, "FAILED");
             throw e;
         }
 
-        return response;
+        return response != null && response.result() != null
+                ? response.result().stream().map(this::toMedicationIdentifyResponse).toList()
+                : List.of();
+    }
+
+    private MedicationIdentifyResponse toMedicationIdentifyResponse(FastApiIdentifyResponse.Result result) {
+        return new MedicationIdentifyResponse(
+                result.ok(),
+                result.itemSeq(),
+                result.itemName(),
+                result.imageUrl(),
+                toIdentification(result.identification()),
+                toRecommendation(result.recommendation()),
+                toFeatures(result.features()),
+                toOfficial(result.official()),
+                result.document()
+        );
+    }
+
+    private MedicationIdentifyResponse.Identification toIdentification(FastApiIdentifyResponse.Identification src) {
+        if (src == null) return null;
+        return new MedicationIdentifyResponse.Identification(src.confidence(), src.score());
+    }
+
+    private MedicationIdentifyResponse.Recommendation toRecommendation(FastApiIdentifyResponse.Recommendation src) {
+        if (src == null) return null;
+        return new MedicationIdentifyResponse.Recommendation(
+                src.status(), src.score(), src.confidence(), src.reason(), src.caution()
+        );
+    }
+
+    private MedicationIdentifyResponse.Features toFeatures(FastApiIdentifyResponse.Features src) {
+        if (src == null) return null;
+        return new MedicationIdentifyResponse.Features(
+                src.frontImprint(), src.backImprint(), src.shape(), src.color(), src.scoreLine()
+        );
+    }
+
+    private MedicationIdentifyResponse.Official toOfficial(FastApiIdentifyResponse.Official src) {
+        if (src == null) return null;
+        return new MedicationIdentifyResponse.Official(
+                src.itemSeq(), src.itemName(), src.efficacy(), src.useMethod(),
+                src.warning(), src.caution(), src.interaction(), src.sideEffect(),
+                src.storage(), src.imageUrl()
+        );
     }
 }
