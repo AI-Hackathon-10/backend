@@ -42,15 +42,14 @@ class ReportControllerTest {
     }
 
     @Test
-    void createsReportForAuthenticatedUser() throws Exception {
+    void createsReportFromRecordIdsForAuthenticatedUser() throws Exception {
         Report report = mockReport();
         when(reportService.create(eq(1L), any())).thenReturn(report);
 
         String requestBody = """
                 {
                   "symptomRecordId": 5,
-                  "medicationId": 3,
-                  "summary": "증상: 두통, 발열\\n시작 시점: 2026-08-20 01:00"
+                  "medicationId": 3
                 }
                 """;
 
@@ -73,12 +72,10 @@ class ReportControllerTest {
     }
 
     @Test
-    void rejectsBlankSummary() throws Exception {
+    void rejectsMissingMedicationId() throws Exception {
         String requestBody = """
                 {
-                  "symptomRecordId": 5,
-                  "medicationId": 3,
-                  "summary": " "
+                  "symptomRecordId": 5
                 }
                 """;
 

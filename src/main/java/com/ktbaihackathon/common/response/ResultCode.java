@@ -21,6 +21,7 @@ public enum ResultCode {
     SYMPTOM_RECORD_CREATE_SUCCESS("증상 기록이 저장되었습니다."),
     REPORT_CREATE_SUCCESS("리포트가 저장되었습니다."),
     REPORT_QUERY_SUCCESS("리포트를 조회했습니다."),
+    REPORT_MEDICATION_NOT_TAKEN("복용 기록을 먼저 확정해야 리포트를 생성할 수 있습니다."),
     USER_NOT_FOUND("존재하지 않는 유저입니다.");
 
     private final String message;
