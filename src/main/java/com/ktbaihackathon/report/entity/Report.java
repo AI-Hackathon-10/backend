@@ -87,6 +87,7 @@ public class Report extends BaseTimeEntity {
             String snapshotObjectKey
     ) {
         this.snapshotObjectKey = snapshotObjectKey;
+        this.snapshotStatus = ReportSnapshotStatus.PENDING;
     }
 
     public void completeSnapshotUpload() {

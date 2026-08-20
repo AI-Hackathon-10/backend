@@ -10,7 +10,7 @@ import java.util.List;
 
 public record SymptomRecordCreateRequest(
         @NotEmpty(message = "증상은 최소 1개 이상 선택해야 합니다.")
-        @Size(max = 2, message = "증상은 최대 2개까지 선택할 수 있습니다.")
+        @Size(max = 10, message = "증상은 최대 10개까지 선택할 수 있습니다.")
         List<@NotNull SymptomType> symptomTypes,
 
         @NotNull(message = "증상 시작 시점은 필수입니다.")
