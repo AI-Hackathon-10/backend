@@ -18,7 +18,8 @@ public enum ResultCode {
     LOGOUT_SUCCESS("로그아웃되었습니다."),
     AUTH_CHECK_SUCCESS("인증 확인에 성공했습니다."),
     SYMPTOM_RECORD_CREATE_SUCCESS("증상 기록이 저장되었습니다."),
-    REPORT_CREATE_SUCCESS("리포트가 저장되었습니다.");
+    REPORT_CREATE_SUCCESS("리포트가 저장되었습니다."),
+    REPORT_QUERY_SUCCESS("리포트를 조회했습니다.");
 
     private final String message;
 
