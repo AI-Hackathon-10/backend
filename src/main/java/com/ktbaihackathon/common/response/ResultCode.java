@@ -19,7 +19,6 @@ public enum ResultCode {
     AUTH_CHECK_SUCCESS("인증 확인에 성공했습니다."),
     SYMPTOM_RECORD_CREATE_SUCCESS("증상 기록이 저장되었습니다."),
     REPORT_CREATE_SUCCESS("리포트가 저장되었습니다.");
-
     private final String message;
 
     ResultCode(String message) {

@@ -32,8 +32,11 @@ public class MedicationEntity {
     @Column(name = "drug_name", length = 100)
     private String drugName;
 
+    @Column(name = "request_id", length = 100, unique = true)
+    private String requestId;
+
     @Column(name = "is_taken", nullable = false)
-    private boolean isTaken = false; // 기본값 false 설정
+    private boolean isTaken = false;
 
     @Column(name = "taken_at")
     private LocalDateTime takenAt;
@@ -41,14 +44,15 @@ public class MedicationEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 생성자 (접근 제한: PROTECTED)
     private MedicationEntity(
             User user,
+            String requestId,
             String frontImageUrl,
             String backImageUrl,
             String drugName
     ) {
         this.user = user;
+        this.requestId = requestId;
         this.frontImageUrl = frontImageUrl;
         this.backImageUrl = backImageUrl;
         this.drugName = drugName;
@@ -56,19 +60,22 @@ public class MedicationEntity {
         this.createdAt = LocalDateTime.now();
     }
 
-    // 정적 팩토리 메서드 (알약 이미지 업로드 및 판별 시점에 사용)
     public static MedicationEntity createRecognition(
             User user,
+            String requestId,
             String frontImageUrl,
             String backImageUrl,
             String drugName
     ) {
-        return new MedicationEntity(user, frontImageUrl, backImageUrl, drugName);
+        return new MedicationEntity(user, requestId, frontImageUrl, backImageUrl, drugName);
     }
 
-    // 비즈니스 로직: 팝업창에서 "YES(섭취함)"를 눌렀을 때 상태 변경 메서드
+    public void updateIdentificationResult(String drugName) {
+        this.drugName = drugName;
+    }
+
     public void markAsTaken() {
         this.isTaken = true;
-        this.takenAt = LocalDateTime.now(); // 복용 시작 시간 기록
+        this.takenAt = LocalDateTime.now();
     }
 }
