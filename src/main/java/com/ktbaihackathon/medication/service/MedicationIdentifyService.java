@@ -4,6 +4,8 @@ import com.ktbaihackathon.common.exception.CustomException;
 import com.ktbaihackathon.common.response.ResultCode;
 import com.ktbaihackathon.medication.dto.FastApiIdentifyRequest;
 import com.ktbaihackathon.medication.dto.FastApiIdentifyResponse;
+import com.ktbaihackathon.medication.dto.IdentifyRequest;
+import com.ktbaihackathon.medication.dto.MedicationIdentifyResponse;
 import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.medication.repository.MedicationRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
 import org.springframework.http.MediaType;
+
+import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -29,10 +34,10 @@ public class MedicationIdentifyService {
             .build();
 
     @Transactional
-    public FastApiIdentifyResponse identify(Long userId, String requestId) {
+    public List<MedicationIdentifyResponse> identify(Long userId, IdentifyRequest request) {
         System.out.println("====== [디버그] 1. 서비스 진입 성공 ======");
 
-        MedicationEntity medication = medicationRepository.findByRequestId(requestId)
+        MedicationEntity medication = medicationRepository.findByRequestIdAndUserUserId(request.requestId(), userId)
                 .orElseThrow(() -> new CustomException(ResultCode.MEDICATION_NOT_FOUND));
 
         System.out.println("====== [디버그] 2. DB에서 데이터 조회 성공 ======");
@@ -68,16 +73,8 @@ public class MedicationIdentifyService {
             if (response != null) {
                 String aiDrugName = null;
 
-                // 1순위 추출: matchResult -> candidates 리스트의 첫 번째 아이템의 itemName
-                if (response.matchResult() != null &&
-                        response.matchResult().candidates() != null &&
-                        !response.matchResult().candidates().isEmpty()) {
-
-                    aiDrugName = response.matchResult().candidates().get(0).itemName();
-                }
-                // 2순위 추출 (Fallback): matchResult가 정상적이지 않을 때 detail 객체의 itemName 활용
-                else if (response.detail() != null) {
-                    aiDrugName = response.detail().itemName();
+                if (response.result() != null && !response.result().isEmpty()) {
+                    aiDrugName = response.result().get(0).itemName();
                 }
 
                 // 엔티티의 알약 이름 업데이트 및 상태값을 SUCCESS로 변경
@@ -89,6 +86,40 @@ public class MedicationIdentifyService {
             throw e;
         }
 
-        return response;
+        return toServiceResponse(response);
+    }
+
+    private List<MedicationIdentifyResponse> toServiceResponse(FastApiIdentifyResponse response) {
+        if (response == null || response.result() == null) {
+            return List.of();
+        }
+        return response.result().stream()
+                .filter(Objects::nonNull)
+                .map(this::toServiceResponse)
+                .toList();
+    }
+
+    private MedicationIdentifyResponse toServiceResponse(FastApiIdentifyResponse.Result result) {
+        FastApiIdentifyResponse.Identification identification = result.identification();
+        FastApiIdentifyResponse.Recommendation recommendation = result.recommendation();
+        FastApiIdentifyResponse.Features features = result.features();
+        FastApiIdentifyResponse.Official official = result.official();
+
+        return new MedicationIdentifyResponse(
+                result.ok(), result.itemSeq(), result.itemName(), result.imageUrl(),
+                identification == null ? null : new MedicationIdentifyResponse.Identification(
+                        identification.confidence(), identification.score()),
+                recommendation == null ? null : new MedicationIdentifyResponse.Recommendation(
+                        recommendation.status(), recommendation.score(), recommendation.confidence(),
+                        recommendation.reason(), recommendation.caution()),
+                features == null ? null : new MedicationIdentifyResponse.Features(
+                        features.frontImprint(), features.backImprint(), features.shape(),
+                        features.color(), features.scoreLine()),
+                official == null ? null : new MedicationIdentifyResponse.Official(
+                        official.itemSeq(), official.itemName(), official.efficacy(), official.useMethod(),
+                        official.warning(), official.caution(), official.interaction(), official.sideEffect(),
+                        official.storage(), official.imageUrl()),
+                result.document()
+        );
     }
 }
