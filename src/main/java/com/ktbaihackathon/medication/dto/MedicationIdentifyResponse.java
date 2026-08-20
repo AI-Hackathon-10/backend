@@ -21,6 +21,7 @@ public record MedicationIdentifyResponse(
     ) {
     }
 
+
     public record Official(
             String itemSeq,
             String itemName,
