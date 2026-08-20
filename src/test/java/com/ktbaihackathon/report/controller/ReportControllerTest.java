@@ -1,6 +1,7 @@
 package com.ktbaihackathon.report.controller;
 
 import com.ktbaihackathon.common.exception.GlobalExceptionHandler;
+import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.report.entity.Report;
 import com.ktbaihackathon.report.entity.ReportSnapshotStatus;
 import com.ktbaihackathon.report.service.ReportService;
@@ -43,6 +44,7 @@ class ReportControllerTest {
         String requestBody = """
                 {
                   "symptomRecordId": 5,
+                  "medicationId": 3,
                   "summary": "증상: 두통, 발열\\n시작 시점: 2026-08-20 01:00"
                 }
                 """;
@@ -56,7 +58,11 @@ class ReportControllerTest {
                 .andExpect(jsonPath("$.result.reportId").value(20))
                 .andExpect(jsonPath("$.result.symptomRecordId").value(5))
                 .andExpect(jsonPath("$.result.summary").value("증상: 두통, 발열\n시작 시점: 2026-08-20 01:00"))
-                .andExpect(jsonPath("$.result.snapshotStatus").value("PENDING"));
+                .andExpect(jsonPath("$.result.snapshotStatus").value("PENDING"))
+                .andExpect(jsonPath("$.result.medication.medicationId").value(3))
+                .andExpect(jsonPath("$.result.medication.drugName").doesNotExist())
+                .andExpect(jsonPath("$.result.medication.frontImageUrl").value("https://example.com/front.jpg"))
+                .andExpect(jsonPath("$.result.medication.backImageUrl").value("https://example.com/back.jpg"));
 
         verify(reportService).create(eq(1L), any());
     }
@@ -66,6 +72,7 @@ class ReportControllerTest {
         String requestBody = """
                 {
                   "symptomRecordId": 5,
+                  "medicationId": 3,
                   "summary": " "
                 }
                 """;
@@ -81,10 +88,15 @@ class ReportControllerTest {
     private Report mockReport() {
         Report report = mock(Report.class);
         SymptomRecord symptomRecord = mock(SymptomRecord.class);
+        MedicationEntity medication = mock(MedicationEntity.class);
 
         when(report.getReportId()).thenReturn(20L);
         when(report.getSymptomRecord()).thenReturn(symptomRecord);
         when(symptomRecord.getSymptomRecordId()).thenReturn(5L);
+        when(report.getMedication()).thenReturn(medication);
+        when(medication.getDrugRecognitionId()).thenReturn(3L);
+        when(medication.getFrontImageUrl()).thenReturn("https://example.com/front.jpg");
+        when(medication.getBackImageUrl()).thenReturn("https://example.com/back.jpg");
         when(report.getSummary()).thenReturn("증상: 두통, 발열\n시작 시점: 2026-08-20 01:00");
         when(report.getSnapshotStatus()).thenReturn(ReportSnapshotStatus.PENDING);
         when(report.getCreatedAt()).thenReturn(Instant.parse("2026-08-20T02:00:00Z"));
