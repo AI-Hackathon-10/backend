@@ -26,7 +26,16 @@ public enum ResultCode {
     REPORT_SNAPSHOT_COMPLETE_SUCCESS("리포트 스냅샷 업로드가 완료되었습니다."),
     REPORT_SNAPSHOT_URL_SUCCESS("리포트 스냅샷 조회 URL이 발급되었습니다."),
     REPORT_SNAPSHOT_NOT_AVAILABLE("리포트 스냅샷을 아직 사용할 수 없습니다."),
-    USER_NOT_FOUND("존재하지 않는 유저입니다.");
+    USER_NOT_FOUND("존재하지 않는 유저입니다."),
+
+    VOICE_TRANSCRIBE_SUCCESS("음성 인식에 성공했습니다."),
+    VOICE_RECOMMEND_SUCCESS("음성 증상 기반 추천에 성공했습니다."),
+    STT_SERVICE_UNAVAILABLE("음성 인식 서비스에 일시적으로 연결할 수 없습니다."),
+    AI_SERVICE_UNAVAILABLE("AI 추천 서비스에 일시적으로 연결할 수 없습니다."),
+    AUDIO_FILE_TOO_LARGE("오디오 파일이 너무 큽니다. 60초 이내로 녹음해 주세요."),
+
+    TTS_SUCCESS("음성 합성에 성공했습니다."),
+    TTS_SERVICE_UNAVAILABLE("음성 합성 서비스에 일시적으로 연결할 수 없습니다.");
 
     private final String message;
 
