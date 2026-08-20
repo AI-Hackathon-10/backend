@@ -4,6 +4,7 @@ import com.ktbaihackathon.common.exception.CustomException;
 import com.ktbaihackathon.common.response.ResultCode;
 import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.medication.repository.MedicationRepository;
+import com.ktbaihackathon.medication.service.S3ImageUrlService;
 import com.ktbaihackathon.report.dto.ReportCreateRequest;
 import com.ktbaihackathon.report.dto.ReportResponse;
 import com.ktbaihackathon.report.entity.Report;
@@ -27,6 +28,7 @@ public class ReportService {
     private final SymptomRecordRepository symptomRecordRepository;
     private final MedicationRepository medicationRepository;
     private final UserRepository userRepository;
+    private final S3ImageUrlService s3ImageUrlService;
 
     @Transactional
     public Report create(Long userId, ReportCreateRequest request) {
@@ -110,8 +112,20 @@ public class ReportService {
     public ReportResponse findOne(Long userId, Long reportId) {
         Report report = reportRepository.findByReportIdAndUser_UserId(reportId, userId)
                 .orElseThrow(() -> new CustomException(ResultCode.INVALID_REQUEST));
+        MedicationEntity medication = report.getMedication();
 
-        return ReportResponse.from(report);
+        if (medication == null) {
+            return ReportResponse.from(report);
+        }
+
+        String frontImageUrl = s3ImageUrlService.issueDownloadUrl(
+                medication.getFrontImageObjectKey()
+        );
+        String backImageUrl = s3ImageUrlService.issueDownloadUrl(
+                medication.getBackImageObjectKey()
+        );
+
+        return ReportResponse.from(report, frontImageUrl, backImageUrl);
     }
 
 }

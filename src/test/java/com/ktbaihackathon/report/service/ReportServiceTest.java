@@ -4,6 +4,8 @@ import com.ktbaihackathon.common.exception.CustomException;
 import com.ktbaihackathon.common.response.ResultCode;
 import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.medication.repository.MedicationRepository;
+import com.ktbaihackathon.medication.service.S3ImageUrlService;
+import com.ktbaihackathon.report.dto.ReportResponse;
 import com.ktbaihackathon.report.dto.ReportCreateRequest;
 import com.ktbaihackathon.report.entity.Report;
 import com.ktbaihackathon.report.repository.ReportRepository;
@@ -31,11 +33,13 @@ class ReportServiceTest {
     private final SymptomRecordRepository symptomRecordRepository = mock(SymptomRecordRepository.class);
     private final MedicationRepository medicationRepository = mock(MedicationRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
+    private final S3ImageUrlService s3ImageUrlService = mock(S3ImageUrlService.class);
     private final ReportService reportService = new ReportService(
             reportRepository,
             symptomRecordRepository,
             medicationRepository,
-            userRepository
+            userRepository,
+            s3ImageUrlService
     );
 
     @Test
@@ -122,6 +126,34 @@ class ReportServiceTest {
                 "앞면 이미지: 없음",
                 "뒷면 이미지: 없음"
         );
+    }
+
+    @Test
+    void returnsPresignedFrontAndBackImageUrlsInReportDetail() {
+        Report report = mock(Report.class);
+        User user = mock(User.class);
+        SymptomRecord symptomRecord = mock(SymptomRecord.class);
+        MedicationEntity medication = mock(MedicationEntity.class);
+
+        when(reportRepository.findByReportIdAndUser_UserId(20L, 1L))
+                .thenReturn(Optional.of(report));
+        when(report.getUser()).thenReturn(user);
+        when(report.getSymptomRecord()).thenReturn(symptomRecord);
+        when(report.getMedication()).thenReturn(medication);
+        when(symptomRecord.getSymptomMaps()).thenReturn(List.of());
+        when(medication.getFrontImageObjectKey()).thenReturn("uploads/front.jpg");
+        when(medication.getBackImageObjectKey()).thenReturn("uploads/back.jpg");
+        when(s3ImageUrlService.issueDownloadUrl("uploads/front.jpg"))
+                .thenReturn("https://s3.example/front-download");
+        when(s3ImageUrlService.issueDownloadUrl("uploads/back.jpg"))
+                .thenReturn("https://s3.example/back-download");
+
+        ReportResponse response = reportService.findOne(1L, 20L);
+
+        assertThat(response.medication().frontImageUrl())
+                .isEqualTo("https://s3.example/front-download");
+        assertThat(response.medication().backImageUrl())
+                .isEqualTo("https://s3.example/back-download");
     }
 
     private void stubOwnedData(
