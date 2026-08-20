@@ -1,9 +1,28 @@
 package com.ktbaihackathon.medication.dto;
 
-// 잭슨 의존성 없이 필드명 자체를 FastAPI API Docs 스펙 규격과 1:1로 일치시킴
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ktbaihackathon.user.enums.Gender;
+
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.List;
+
 public record FastApiIdentifyRequest(
-        String front_image,
-        String back_image,
-        String front_mime_type,
-        String back_mime_type
-) {}
+        User user,
+        List<String> symptoms,
+        OffsetDateTime symptomStartedAt,
+        List<Item> items
+) {
+    public record User(
+            Long userId,
+            String name,
+            Gender gender,
+            LocalDate birthDate
+    ) {}
+
+    public record Item(
+            String id,
+            @JsonProperty("front_image") String frontImage,
+            @JsonProperty("back_image") String backImage
+    ) {}
+}

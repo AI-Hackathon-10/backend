@@ -3,19 +3,22 @@ package com.ktbaihackathon.medication.controller;
 import com.ktbaihackathon.common.response.ApiResponse;
 import com.ktbaihackathon.common.response.ResultCode;
 import com.ktbaihackathon.common.security.SecurityContextUtil; //
-import com.ktbaihackathon.medication.dto.FastApiIdentifyResponse;
 import com.ktbaihackathon.medication.dto.IdentifyRequest;
+import com.ktbaihackathon.medication.dto.MedicationIdentifyResponse;
 import com.ktbaihackathon.medication.dto.PillUploadUrlsResponse;
 import com.ktbaihackathon.medication.dto.PresignUrlRequest;
 import com.ktbaihackathon.medication.service.MedicationIdentifyService;
 import com.ktbaihackathon.medication.service.S3PresignService;
 import jakarta.servlet.http.HttpServletRequest; //
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/medications")
@@ -51,12 +54,12 @@ public class MedicationUploadController {
 
 
     @PostMapping("/identify")
-    public ResponseEntity<ApiResponse<FastApiIdentifyResponse>> identify(
+    public ResponseEntity<ApiResponse<List<MedicationIdentifyResponse>>> identify(
             HttpServletRequest request,
-            @RequestBody IdentifyRequest identifyRequest) {
+            @Valid @RequestBody IdentifyRequest identifyRequest) {
 
         Long userId = SecurityContextUtil.extractUserId(request);
-        FastApiIdentifyResponse result = medicationIdentifyService.identify(userId, identifyRequest.requestId());
+        List<MedicationIdentifyResponse> result = medicationIdentifyService.identify(userId, identifyRequest);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
