@@ -6,11 +6,14 @@ import com.ktbaihackathon.medication.dto.FastApiIdentifyRequest;
 import com.ktbaihackathon.medication.dto.FastApiIdentifyResponse;
 import com.ktbaihackathon.medication.entity.MedicationEntity;
 import com.ktbaihackathon.medication.repository.MedicationRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestClient;
-import org.springframework.http.MediaType;
 
 @Service
 @RequiredArgsConstructor
@@ -19,14 +22,22 @@ public class MedicationIdentifyService {
     private final S3ImageDownloadService s3ImageDownloadService;
     private final MedicationRepository medicationRepository;
 
-    // 💡 [로컬 개발 환경 설정]: 내 PC 도커 포트로 연결된 FastAPI(localhost:8000) 및 타임아웃 60초 설정
-    private final RestClient fastApiClient = RestClient.builder()
-            .baseUrl("http://localhost:8000")
-            .requestFactory(new org.springframework.http.client.SimpleClientHttpRequestFactory() {{
-                setConnectTimeout(5000);
-                setReadTimeout(60000); // AI 연산 대기 시간 60초 보장
-            }})
-            .build();
+    @Value("${fastapi.base-url}")
+    private String fastApiBaseUrl;
+
+    private RestClient fastApiClient;
+
+    @PostConstruct
+    private void initFastApiClient() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(5000);
+        requestFactory.setReadTimeout(60000); // AI 연산 대기 시간 60초 보장
+
+        this.fastApiClient = RestClient.builder()
+                .baseUrl(fastApiBaseUrl)
+                .requestFactory(requestFactory)
+                .build();
+    }
 
     @Transactional
     public FastApiIdentifyResponse identify(Long userId, String requestId) {
@@ -46,7 +57,6 @@ public class MedicationIdentifyService {
 
         System.out.println("====== [디버그] 4. S3 다운로드 완료, FastAPI 호출 시작 ====== ");
 
-        // 💡 수동 String.format을 지우고, 스네이크 케이스 필드명을 가진 DTO 레코드를 깔끔하게 생성
         FastApiIdentifyRequest apiRequest = new FastApiIdentifyRequest(
                 frontBase64,
                 backBase64,
@@ -59,7 +69,7 @@ public class MedicationIdentifyService {
             response = fastApiClient.post()
                     .uri("/identify")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(apiRequest) // 👈 DTO 객체 바디 전달
+                    .body(apiRequest)
                     .retrieve()
                     .body(FastApiIdentifyResponse.class);
 
@@ -68,19 +78,15 @@ public class MedicationIdentifyService {
             if (response != null) {
                 String aiDrugName = null;
 
-                // 1순위 추출: matchResult -> candidates 리스트의 첫 번째 아이템의 itemName
                 if (response.matchResult() != null &&
                         response.matchResult().candidates() != null &&
                         !response.matchResult().candidates().isEmpty()) {
 
                     aiDrugName = response.matchResult().candidates().get(0).itemName();
-                }
-                // 2순위 추출 (Fallback): matchResult가 정상적이지 않을 때 detail 객체의 itemName 활용
-                else if (response.detail() != null) {
+                } else if (response.detail() != null) {
                     aiDrugName = response.detail().itemName();
                 }
 
-                // 엔티티의 알약 이름 업데이트 및 상태값을 SUCCESS로 변경
                 medication.updateIdentificationResult(aiDrugName, "SUCCESS");
             }
         } catch (Exception e) {

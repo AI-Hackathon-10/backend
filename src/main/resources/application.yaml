@@ -24,3 +24,5 @@ aws:
     access-key: ${S3_ACCESS_KEY}
     secret-key: ${S3_SECRET_KEY}
 
+fastapi:
+  base-url: ${FASTAPI_BASE_URL}
