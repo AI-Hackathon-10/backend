@@ -24,6 +24,28 @@ public record ReportResponse(
 ) {
 
     public static ReportResponse from(Report report) {
+        return create(report, MedicationInfo.from(report.getMedication()));
+    }
+
+    public static ReportResponse from(
+            Report report,
+            String frontImageUrl,
+            String backImageUrl
+    ) {
+        return create(
+                report,
+                MedicationInfo.from(
+                        report.getMedication(),
+                        frontImageUrl,
+                        backImageUrl
+                )
+        );
+    }
+
+    private static ReportResponse create(
+            Report report,
+            MedicationInfo medicationInfo
+    ) {
         return new ReportResponse(
                 report.getReportId(),
                 report.getSymptomRecord().getSymptomRecordId(),
@@ -37,7 +59,7 @@ public record ReportResponse(
                 report.getSnapshotStatus(),
                 report.getSnapshotObjectKey(),
                 report.getCreatedAt(),
-                MedicationInfo.from(report.getMedication())
+                medicationInfo
         );
     }
 
@@ -50,17 +72,31 @@ public record ReportResponse(
     ) {
 
         private static MedicationInfo from(MedicationEntity medication) {
-            // 🚨 null 방어 코드 추가 (복약 정보가 없을 수도 있으니까!)
             if (medication == null) {
                 return null;
             }
 
-            // 엔티티의 최신 스펙 반영 (medicationRecognitionId / ObjectKey 사용)
+            return from(
+                    medication,
+                    medication.getFrontImageObjectKey(),
+                    medication.getBackImageObjectKey()
+            );
+        }
+
+        private static MedicationInfo from(
+                MedicationEntity medication,
+                String frontImageUrl,
+                String backImageUrl
+        ) {
+            if (medication == null) {
+                return null;
+            }
+
             return new MedicationInfo(
-                    medication.getMedicationRecognitionId(), // 🚨 getDrugRecognitionId() 대신 바뀐 ID 호출
+                    medication.getMedicationRecognitionId(),
                     medication.getDrugName(),
-                    medication.getFrontImageObjectKey(),     // 🚨 getFrontImageUrl() 대신 Object Key로 매핑
-                    medication.getBackImageObjectKey(),      // 🚨 getBackImageUrl() 대신 Object Key로 매핑
+                    frontImageUrl,
+                    backImageUrl,
                     medication.getTakenAt()
             );
         }

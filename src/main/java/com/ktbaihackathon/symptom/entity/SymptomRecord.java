@@ -71,8 +71,8 @@ public class SymptomRecord extends BaseTimeEntity {
     }
 
     public void addSymptom(SymptomType symptomType) {
-        if (symptomMaps.size() >= 2) {
-            throw new IllegalArgumentException("증상은 최대 2개까지 선택할 수 있습니다.");
+        if (symptomMaps.size() >= 10) {
+            throw new IllegalArgumentException("증상은 최대 10개까지 선택할 수 있습니다.");
         }
 
         boolean alreadyExists = symptomMaps.stream()
