@@ -58,9 +58,14 @@ public class S3PresignService {
         );
 
         // 4. 데이터베이스에 영속화 (Insert 쿼리 실행)
-        medicationRepository.save(medication);
+        MedicationEntity savedMedication = medicationRepository.save(medication);
 
-        return new PillUploadUrlsResponse(requestId, frontUrl, backUrl);
+        return new PillUploadUrlsResponse(
+                savedMedication.getDrugRecognitionId(),
+                requestId,
+                frontUrl,
+                backUrl
+        );
     }
 
     private String buildKey(String sessionId, String requestId, String fileType) {
