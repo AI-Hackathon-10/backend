@@ -9,31 +9,37 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "drug_recognition")
+@Table(name = "medication_recognition")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MedicationEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "drug_recognition_id")
-    private Long drugRecognitionId;
+    @Column(name = "medication_recognition_id") // 🚨 기획서 매핑 수정
+    private Long medicationRecognitionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "front_image_url", length = 500)
-    private String frontImageUrl;
+    @Column(name = "front_image_object_key", length = 500) // 🚨 URL 대신 Object Key 명세 적용
+    private String frontImageObjectKey;
 
-    @Column(name = "back_image_url", length = 500)
-    private String backImageUrl;
+    @Column(name = "back_image_object_key", length = 500)  // 🚨 URL 대신 Object Key 명세 적용
+    private String backImageObjectKey;
+
+    @Column(name = "analysis_status", length = 20, nullable = false) // 🚨 추가된 상태값 필드
+    private String analysisStatus;
 
     @Column(name = "drug_name", length = 100)
     private String drugName;
 
+    @Column(name = "request_id", length = 100, unique = true)
+    private String requestId;
+
     @Column(name = "is_taken", nullable = false)
-    private boolean isTaken = false; // 기본값 false 설정
+    private boolean isTaken = false;
 
     @Column(name = "taken_at")
     private LocalDateTime takenAt;
@@ -41,34 +47,41 @@ public class MedicationEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 생성자 (접근 제한: PROTECTED)
     private MedicationEntity(
             User user,
-            String frontImageUrl,
-            String backImageUrl,
+            String requestId,
+            String frontImageObjectKey,
+            String backImageObjectKey,
             String drugName
     ) {
         this.user = user;
-        this.frontImageUrl = frontImageUrl;
-        this.backImageUrl = backImageUrl;
+        this.requestId = requestId;
+        this.frontImageObjectKey = frontImageObjectKey;
+        this.backImageObjectKey = backImageObjectKey;
         this.drugName = drugName;
+        this.analysisStatus = "PENDING"; // 🚨 생성 시 기본 상태는 PENDING
         this.isTaken = false;
         this.createdAt = LocalDateTime.now();
     }
 
-    // 정적 팩토리 메서드 (알약 이미지 업로드 및 판별 시점에 사용)
     public static MedicationEntity createRecognition(
             User user,
-            String frontImageUrl,
-            String backImageUrl,
+            String requestId,
+            String frontImageObjectKey,
+            String backImageObjectKey,
             String drugName
     ) {
-        return new MedicationEntity(user, frontImageUrl, backImageUrl, drugName);
+        return new MedicationEntity(user, requestId, frontImageObjectKey, backImageObjectKey, drugName);
     }
 
-    // 비즈니스 로직: 팝업창에서 "YES(섭취함)"를 눌렀을 때 상태 변경 메서드
+    // AI 결과 업데이트 및 상태 완료 처리
+    public void updateIdentificationResult(String drugName, String status) {
+        this.drugName = drugName;
+        this.analysisStatus = status;
+    }
+
     public void markAsTaken() {
         this.isTaken = true;
-        this.takenAt = LocalDateTime.now(); // 복용 시작 시간 기록
+        this.takenAt = LocalDateTime.now();
     }
 }
